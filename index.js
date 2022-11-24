@@ -23,9 +23,31 @@ async function run() {
         const Category = client.db('MyCarDatabase').collection('CategoryData')
         const Orders = client.db('MyCarDatabase').collection('Orders')
 
+        app.get('/myProduct', async (req, res) => {
+            const email = req.query.email;
+            const name = req.query.name;
+            const query = {
+                seller_info: {
+                    name,
+                    email,
+                }
+            }
+            // console.log(query);
+            const result = await CarsData.find(query).toArray()
+
+            res.send(result)
+        })
         app.post('/orders', async (req, res) => {
             const order = req.body
             const result = await Orders.insertOne(order)
+            res.send(result)
+        })
+        app.get('/orders', async (req, res) => {
+            const email = req.query.email
+            const query = {
+                buyer_email: email,
+            }
+            const result = await Orders.find(query).toArray()
             res.send(result)
         })
 
