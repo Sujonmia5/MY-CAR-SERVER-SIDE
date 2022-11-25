@@ -18,10 +18,33 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 async function run() {
     try {
-        const Users = client.db('MyCarDatabase').collection('users')
-        const CarsData = client.db('MyCarDatabase').collection('carsData')
+        const UsersCollection = client.db('MyCarDatabase').collection('users')
+        const CarsCollection = client.db('MyCarDatabase').collection('carsData')
         const Category = client.db('MyCarDatabase').collection('CategoryData')
-        const Orders = client.db('MyCarDatabase').collection('Orders')
+        const OrdersCollection = client.db('MyCarDatabase').collection('Orders')
+        const ReportCollection = client.db('MyCarDatabase').collection('report')
+
+        app.post('/report', async (req, res) => {
+            const reportData = req.body;
+            // console.log(reportData);
+            const result = await ReportCollection.insertOne(reportData)
+            res.send(result)
+        })
+        app.get('/report', async (req, res) => {
+            const query = {}
+            const result = await ReportCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        app.get('/sellers', async (req, res) => {
+            const seller = req.query.role;
+            const query = {
+                role: seller
+            }
+            const result = await UsersCollection.find(query).toArray()
+            console.log(result);
+            res.send(result)
+        })
 
         app.get('/myProduct', async (req, res) => {
             const email = req.query.email;
@@ -33,13 +56,13 @@ async function run() {
                 }
             }
             // console.log(query);
-            const result = await CarsData.find(query).toArray()
+            const result = await CarsCollection.find(query).toArray()
 
             res.send(result)
         })
         app.post('/orders', async (req, res) => {
             const order = req.body
-            const result = await Orders.insertOne(order)
+            const result = await OrdersCollection.insertOne(order)
             res.send(result)
         })
         app.get('/orders', async (req, res) => {
@@ -47,7 +70,7 @@ async function run() {
             const query = {
                 buyer_email: email,
             }
-            const result = await Orders.find(query).toArray()
+            const result = await OrdersCollection.find(query).toArray()
             res.send(result)
         })
 
@@ -58,7 +81,7 @@ async function run() {
             const docs = {
                 $set: { booking: true }
             }
-            const result = await CarsData.updateOne(filter, docs, option)
+            const result = await CarsCollection.updateOne(filter, docs, option)
             res.send(result)
         })
 
@@ -69,9 +92,37 @@ async function run() {
         })
         app.post('/users', async (req, res) => {
             const user = req.body;
-            const result = await Users.insertOne(user)
+            const result = await UsersCollection.insertOne(user)
             res.send(result)
         })
+        app.get('/users', async (req, res) => {
+            const query = {}
+            const result = await UsersCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.put('/users', async (req, res) => {
+            const role = req.query.role;
+            const filter = {
+                email: req.query.email
+            }
+            const option = { upsert: true }
+            const docs = {
+                $set: {
+                    role,
+                }
+            }
+            const result = await UsersCollection.updateOne(filter, docs, option)
+            res.send(result)
+        })
+
+        app.delete('/users', async (req, res) => {
+            const filter = {
+                email: req.query.email
+            }
+            const result = await UsersCollection.deleteOne(filter)
+            res.send(result)
+        })
+
         app.post('/cars', async (req, res) => {
             const data = req.body;
             const date = new Date()
@@ -79,16 +130,16 @@ async function run() {
                 ...data,
                 date,
             }
-            const result = await CarsData.insertOne(query)
+            const result = await CarsCollection.insertOne(query)
             res.send(result)
         })
 
-        app.get('/cars/data/:id', async (req, res) => {
-            const brand = req.params.id
+        app.get('/cars/data/:brand', async (req, res) => {
+            const brand = req.params.brand
             const query = {
                 brand: brand
             }
-            const result = await CarsData.find(query).toArray()
+            const result = await CarsCollection.find(query).toArray()
             res.send(result)
         })
     }
