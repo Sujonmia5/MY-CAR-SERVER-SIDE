@@ -3,6 +3,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 5000;
 const cors = require('cors')
+const JWT = require('jsonwebtoken')
 require('dotenv').config()
 
 
@@ -15,6 +16,10 @@ app.get('/', (req, res) => {
 
 const uri = `${process.env.DBURL}`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+async function verifyToken(req, res, next) {
+
+}
 
 async function run() {
     try {
@@ -31,6 +36,18 @@ async function run() {
             }
             const result = await OrdersCollection.deleteOne(filter)
             res.send(result)
+        })
+        app.get('/jwt/token', async (req, res) => {
+            const email = req.query.email
+            const filter = {
+                email,
+            }
+            const user = await UsersCollection.findOne(filter)
+            if (user) {
+                const token = JWT.sign({ email }, process.env.jwtTOKEN, { expiresIn: '10d' })
+                res.send({ token })
+            }
+            res.status(401).send({ token: '' })
         })
 
         app.post('/report', async (req, res) => {
@@ -125,6 +142,19 @@ async function run() {
         })
         app.post('/users', async (req, res) => {
             const user = req.body;
+            const filter = {
+                email: user.email
+            }
+            const alreadyAddedUser = await UsersCollection.findOne(filter)
+            if (alreadyAddedUser) {
+                const docs = {
+                    $set: {
+                        ...user
+                    }
+                }
+                const data = await UsersCollection.updateOne(filter, docs)
+                return res.send(data)
+            }
             const result = await UsersCollection.insertOne(user)
             res.send(result)
         })
