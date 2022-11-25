@@ -24,12 +24,30 @@ async function run() {
         const OrdersCollection = client.db('MyCarDatabase').collection('Orders')
         const ReportCollection = client.db('MyCarDatabase').collection('report')
 
+        app.delete('/orders', async (req, res) => {
+            const id = req.query.id
+            const filter = {
+                _id: ObjectId(id)
+            }
+            const result = await OrdersCollection.deleteOne(filter)
+            res.send(result)
+        })
+
         app.post('/report', async (req, res) => {
             const reportData = req.body;
-            // console.log(reportData);
+            console.log(reportData);
             const result = await ReportCollection.insertOne(reportData)
             res.send(result)
         })
+
+        app.delete('/report', async (req, res) => {
+            const id = req.query.id;
+            const filter = { _id: ObjectId(id) }
+            const result = await ReportCollection.deleteOne(filter)
+            console.log(id);
+            res.send(result)
+        })
+
         app.get('/report', async (req, res) => {
             const query = {}
             const result = await ReportCollection.find(query).toArray()
@@ -42,7 +60,19 @@ async function run() {
                 role: seller
             }
             const result = await UsersCollection.find(query).toArray()
-            console.log(result);
+            res.send(result)
+        })
+        app.put('/sellers', async (req, res) => {
+            const id = req.query.id
+            const role = req.query.role;
+            const filter = { _id: ObjectId(id) }
+            const option = { upsert: true }
+            const docs = {
+                $set: {
+                    role
+                }
+            }
+            const result = await UsersCollection.updateOne(filter, docs, option)
             res.send(result)
         })
 
@@ -62,6 +92,7 @@ async function run() {
         })
         app.post('/orders', async (req, res) => {
             const order = req.body
+            // console.log(order);
             const result = await OrdersCollection.insertOne(order)
             res.send(result)
         })
@@ -74,16 +105,18 @@ async function run() {
             res.send(result)
         })
 
-        app.put('/bookings', async (req, res) => {
-            const id = req.query.id;
-            const filter = { _id: ObjectId(id) }
-            const option = { upsert: true }
-            const docs = {
-                $set: { booking: true }
-            }
-            const result = await CarsCollection.updateOne(filter, docs, option)
-            res.send(result)
-        })
+        // app.put('/bookings', async (req, res) => {
+        //     const id = req.query.id;
+        //     const sold = req.body;
+        //     console.log(sold);
+        //     const filter = { _id: ObjectId(id) }
+        //     const option = { upsert: true }
+        //     const docs = {
+        //         $set: { sold: true }
+        //     }
+        //     const result = await CarsCollection.updateOne(filter, docs, option)
+        //     res.send({})
+        // })
 
         app.get('/category', async (req, res) => {
             const query = {}
