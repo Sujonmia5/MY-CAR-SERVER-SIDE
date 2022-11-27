@@ -18,7 +18,17 @@ const uri = `${process.env.DBURL}`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 async function verifyToken(req, res, next) {
-
+    const authorization = req.headers.authorization;
+    if (!authorization) {
+        return res.status(401).send({ message: 'Users Unauthorized' })
+    }
+    JWT.verify(authorization, process.env.jwtTOKEN, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'Users Unauthorized' })
+        }
+        req.decoded = decoded
+    })
+    next()
 }
 
 async function run() {
@@ -29,7 +39,40 @@ async function run() {
         const OrdersCollection = client.db('MyCarDatabase').collection('Orders')
         const ReportCollection = client.db('MyCarDatabase').collection('report')
 
-        app.delete('/orders', async (req, res) => {
+        const verifyAdmin = async (req, res, next) => {
+            const decoded = req.decoded.email;
+            const query = {
+                email: decoded
+            }
+            const userAdmin = await UsersCollection.findOne(query)
+            if (userAdmin?.role !== 'Admin') {
+                return res.status(403).send({ message: 'You cannot make a admin' })
+            }
+            next()
+        }
+
+        app.get('/adminUser', verifyToken, async (req, res) => {
+            const email = req.query.email;
+            const filter = {
+                email
+            }
+            const result = await UsersCollection.findOne(filter)
+            if (result) {
+                return res.send({ isAdmin: result?.role === 'admin' })
+            }
+        })
+        app.get('/sellerUser', verifyToken, async (req, res) => {
+            const email = req.query.email;
+            const filter = {
+                email
+            }
+            const result = await UsersCollection.findOne(filter)
+            if (result) {
+                return res.send({ isSeller: result?.role === 'seller' })
+            }
+        })
+
+        app.delete('/orders', verifyToken, async (req, res) => {
             const id = req.query.id
             const filter = {
                 _id: ObjectId(id)
@@ -39,39 +82,40 @@ async function run() {
         })
         app.get('/jwt/token', async (req, res) => {
             const email = req.query.email
+            console.log(email);
             const filter = {
                 email,
             }
             const user = await UsersCollection.findOne(filter)
             if (user) {
                 const token = JWT.sign({ email }, process.env.jwtTOKEN, { expiresIn: '10d' })
-                res.send({ token })
+                return res.send({ token })
             }
             res.status(401).send({ token: '' })
         })
 
-        app.post('/report', async (req, res) => {
+        app.post('/report', verifyToken, async (req, res) => {
             const reportData = req.body;
-            console.log(reportData);
+            // console.log(reportData);
             const result = await ReportCollection.insertOne(reportData)
             res.send(result)
         })
 
-        app.delete('/report', async (req, res) => {
+        app.delete('/report', verifyToken, async (req, res) => {
             const id = req.query.id;
             const filter = { _id: ObjectId(id) }
             const result = await ReportCollection.deleteOne(filter)
-            console.log(id);
+            // console.log(id);
             res.send(result)
         })
 
-        app.get('/report', async (req, res) => {
+        app.get('/report', verifyToken, async (req, res) => {
             const query = {}
             const result = await ReportCollection.find(query).toArray()
             res.send(result)
         })
 
-        app.get('/sellers', async (req, res) => {
+        app.get('/sellers', verifyToken, async (req, res) => {
             const seller = req.query.role;
             const query = {
                 role: seller
@@ -79,7 +123,7 @@ async function run() {
             const result = await UsersCollection.find(query).toArray()
             res.send(result)
         })
-        app.put('/sellers', async (req, res) => {
+        app.put('/sellers', verifyToken, async (req, res) => {
             const id = req.query.id
             const role = req.query.role;
             const filter = { _id: ObjectId(id) }
@@ -93,7 +137,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/myProduct', async (req, res) => {
+        app.get('/myProduct', verifyToken, async (req, res) => {
             const email = req.query.email;
             const name = req.query.name;
             const query = {
@@ -102,18 +146,17 @@ async function run() {
                     email,
                 }
             }
-            // console.log(query);
             const result = await CarsCollection.find(query).toArray()
 
             res.send(result)
         })
-        app.post('/orders', async (req, res) => {
+        app.post('/orders', verifyToken, async (req, res) => {
             const order = req.body
             // console.log(order);
             const result = await OrdersCollection.insertOne(order)
             res.send(result)
         })
-        app.get('/orders', async (req, res) => {
+        app.get('/orders', verifyToken, async (req, res) => {
             const email = req.query.email
             const query = {
                 buyer_email: email,
@@ -135,7 +178,7 @@ async function run() {
         //     res.send({})
         // })
 
-        app.get('/category', async (req, res) => {
+        app.get('/CategoryData', verifyToken, async (req, res) => {
             const query = {}
             const result = await Category.find(query).toArray()
             res.send(result)
@@ -158,12 +201,12 @@ async function run() {
             const result = await UsersCollection.insertOne(user)
             res.send(result)
         })
-        app.get('/users', async (req, res) => {
+        app.get('/users', verifyToken, async (req, res) => {
             const query = {}
             const result = await UsersCollection.find(query).toArray()
             res.send(result)
         })
-        app.put('/users', async (req, res) => {
+        app.put('/users', verifyToken, async (req, res) => {
             const role = req.query.role;
             const filter = {
                 email: req.query.email
@@ -178,7 +221,7 @@ async function run() {
             res.send(result)
         })
 
-        app.delete('/users', async (req, res) => {
+        app.delete('/users', verifyToken, async (req, res) => {
             const filter = {
                 email: req.query.email
             }
@@ -186,7 +229,7 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/cars', async (req, res) => {
+        app.post('/cars', verifyToken, async (req, res) => {
             const data = req.body;
             const date = new Date()
             const query = {
@@ -197,7 +240,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/cars/data/:brand', async (req, res) => {
+        app.get('/cars/data/:brand', verifyToken, async (req, res) => {
             const brand = req.params.brand
             const query = {
                 brand: brand
