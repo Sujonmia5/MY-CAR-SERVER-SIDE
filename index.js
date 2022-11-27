@@ -52,7 +52,18 @@ async function run() {
             next()
         }
 
-        app.put('/advertise', async (req, res) => {
+        app.get('/advertise', verifyToken, async (req, res) => {
+            const query = {
+                sold: false,
+                advertise: true,
+            }
+
+            const result = await CarsCollection.find(query).toArray()
+            res.send(result)
+        })
+
+
+        app.put('/advertise', verifyToken, async (req, res) => {
             const id = req.query.id;
             console.log(id);
             const filter = { _id: ObjectId(id) }
@@ -301,7 +312,8 @@ async function run() {
         app.get('/cars/data/:brand', verifyToken, async (req, res) => {
             const brand = req.params.brand
             const query = {
-                brand: brand
+                brand: brand,
+                sold: false,
             }
             const result = await CarsCollection.find(query).toArray()
             res.send(result)
