@@ -39,7 +39,6 @@ async function run() {
         const Category = client.db('MyCarDatabase').collection('CategoryData')
         const OrdersCollection = client.db('MyCarDatabase').collection('Orders')
         const ReportCollection = client.db('MyCarDatabase').collection('report')
-        const AdvertiseCollection = client.db('MyCarDatabase').collection('advertise')
 
         const verifyAdmin = async (req, res, next) => {
             const decoded = req.decoded.email;
@@ -53,9 +52,18 @@ async function run() {
             next()
         }
 
-        app.post('/advertise', async (req, res) => {
-            const advertiseData = req.body;
-            const result = await AdvertiseCollection.insertOne(advertiseData)
+        app.put('/advertise', async (req, res) => {
+            const id = req.query.id;
+            console.log(id);
+            const filter = { _id: ObjectId(id) }
+            const option = { upsert: true }
+            const docs = {
+                $set: {
+                    advertise: true
+                }
+            }
+            const result = await CarsCollection.updateOne(filter, docs, option)
+            console.log(result, filter);
             res.send(result)
         })
 
@@ -94,8 +102,9 @@ async function run() {
                 email,
             }
             const result = await UsersCollection.findOne(query)
+            // console.log(result);
             if (result) {
-                return res.send({ isVerify: result.verify = true })
+                return res.send({ isVerify: result.verify })
             }
         })
 
@@ -131,7 +140,7 @@ async function run() {
         })
         app.get('/jwt/token', async (req, res) => {
             const email = req.query.email
-            console.log(email);
+            // console.log(email);
             const filter = {
                 email,
             }
