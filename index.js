@@ -22,6 +22,7 @@ async function verifyToken(req, res, next) {
     if (!authorization) {
         return res.status(401).send({ message: 'Users Unauthorized' })
     }
+    // console.log(authorization);
     JWT.verify(authorization, process.env.jwtTOKEN, function (err, decoded) {
         if (err) {
             return res.status(403).send({ message: 'Users Unauthorized' })
@@ -38,6 +39,7 @@ async function run() {
         const Category = client.db('MyCarDatabase').collection('CategoryData')
         const OrdersCollection = client.db('MyCarDatabase').collection('Orders')
         const ReportCollection = client.db('MyCarDatabase').collection('report')
+        const AdvertiseCollection = client.db('MyCarDatabase').collection('advertise')
 
         const verifyAdmin = async (req, res, next) => {
             const decoded = req.decoded.email;
@@ -50,6 +52,53 @@ async function run() {
             }
             next()
         }
+
+        app.post('/advertise', async (req, res) => {
+            const advertiseData = req.body;
+            const result = await AdvertiseCollection.insertOne(advertiseData)
+            res.send(result)
+        })
+
+        app.put('/verify/seller', verifyToken, async (req, res) => {
+            const seller = req.query.email;
+            const filter = {
+                email: seller,
+            }
+            const option = { upsert: true };
+            const docs = {
+                $set: {
+                    verify: true
+                }
+            }
+            const result = await UsersCollection.updateOne(filter, docs, option)
+            res.send(result)
+        })
+        app.put('/verify/delete', verifyToken, async (req, res) => {
+            const seller = req.query.email;
+            const filter = {
+                email: seller,
+            }
+            const option = { upsert: true };
+            const docs = {
+                $set: {
+                    verify: false
+                }
+            }
+            const result = await UsersCollection.updateOne(filter, docs, option)
+            res.send(result)
+        })
+
+        app.get('/verify/check', verifyToken, async (req, res) => {
+            const email = req.query.email;
+            const query = {
+                email,
+            }
+            const result = await UsersCollection.findOne(query)
+            if (result) {
+                return res.send({ isVerify: result.verify = true })
+            }
+        })
+
 
         app.get('/adminUser', verifyToken, async (req, res) => {
             const email = req.query.email;
@@ -178,7 +227,7 @@ async function run() {
         //     res.send({})
         // })
 
-        app.get('/CategoryData', verifyToken, async (req, res) => {
+        app.get('/CategoryData', async (req, res) => {
             const query = {}
             const result = await Category.find(query).toArray()
             res.send(result)
