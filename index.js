@@ -22,7 +22,6 @@ async function verifyToken(req, res, next) {
     if (!authorization) {
         return res.status(401).send({ message: 'Users Unauthorized' })
     }
-    // console.log(authorization);
     JWT.verify(authorization, process.env.jwtTOKEN, function (err, decoded) {
         if (err) {
             return res.status(403).send({ message: 'Users Unauthorized' })
@@ -52,7 +51,7 @@ async function run() {
             next()
         }
 
-        app.get('/advertise', verifyToken, async (req, res) => {
+        app.get('/advertise', async (req, res) => {
             const query = {
                 sold: false,
                 advertise: true,
@@ -63,9 +62,8 @@ async function run() {
         })
 
 
-        app.put('/advertise', verifyToken, async (req, res) => {
+        app.put('/advertise', async (req, res) => {
             const id = req.query.id;
-            console.log(id);
             const filter = { _id: ObjectId(id) }
             const option = { upsert: true }
             const docs = {
@@ -74,7 +72,7 @@ async function run() {
                 }
             }
             const result = await CarsCollection.updateOne(filter, docs, option)
-            console.log(result, filter);
+            console.log(result);
             res.send(result)
         })
 
@@ -107,13 +105,14 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/verify/check', verifyToken, async (req, res) => {
+        app.get('/verify/check', async (req, res) => {
             const email = req.query.email;
+            console.log(email);
             const query = {
                 email,
             }
             const result = await UsersCollection.findOne(query)
-            // console.log(result);
+            console.log(result);
             if (result) {
                 return res.send({ isVerify: result.verify })
             }
@@ -233,19 +232,6 @@ async function run() {
             const result = await OrdersCollection.find(query).toArray()
             res.send(result)
         })
-
-        // app.put('/bookings', async (req, res) => {
-        //     const id = req.query.id;
-        //     const sold = req.body;
-        //     console.log(sold);
-        //     const filter = { _id: ObjectId(id) }
-        //     const option = { upsert: true }
-        //     const docs = {
-        //         $set: { sold: true }
-        //     }
-        //     const result = await CarsCollection.updateOne(filter, docs, option)
-        //     res.send({})
-        // })
 
         app.get('/CategoryData', async (req, res) => {
             const query = {}
