@@ -62,7 +62,7 @@ async function run() {
         })
 
 
-        app.put('/advertise', async (req, res) => {
+        app.put('/advertise', verifyToken, async (req, res) => {
             const id = req.query.id;
             const filter = { _id: ObjectId(id) }
             const option = { upsert: true }
@@ -105,7 +105,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/verify/check', async (req, res) => {
+        app.get('/verify/check', verifyToken, async (req, res) => {
             const email = req.query.email;
             console.log(email);
             const query = {
